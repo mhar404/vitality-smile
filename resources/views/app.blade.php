@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title inertia>{{ config('app.name', 'Laravel') }}</title>
+    <title inertia>{{ config('app.name', 'Vitality Smile') }}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('images/brand/vitality-logo.png') }}?v={{ filemtime(public_path('images/brand/vitality-logo.png')) }}">
