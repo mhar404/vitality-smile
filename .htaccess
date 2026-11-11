@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Block direct web access to sensitive environment files and system folders
+    RewriteRule ^\.env - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|storage|tests)/ - [F,L,NC]
+
+    # Rewrite all traffic into the Laravel public directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
