@@ -1,0 +1,471 @@
+@import 'primeicons/primeicons.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-gray-50 text-gray-900 antialiased transition-colors duration-150;
+    }
+
+    html.dark body {
+        @apply bg-slate-950 text-slate-100;
+    }
+
+    /* Native form controls dark color-scheme */
+    .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+    .dark textarea,
+    .dark select {
+        color-scheme: dark;
+    }
+
+    /* Subtle custom dark scrollbar for sleek modern aesthetics */
+    html.dark ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    html.dark ::-webkit-scrollbar-track {
+        background: #0f172a;
+    }
+
+    html.dark ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+    }
+
+    html.dark ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+    }
+}
+
+/* ==========================================================================
+   SYSTEM-WIDE DARK MODE HIGH-CONTRAST ENGINE
+   Placed outside @layer so these rules override utility classes with certainty.
+   Preserves explicit dark:* overrides while ensuring 100% text readability everywhere.
+   ========================================================================== */
+
+/* 1. Structural Surfaces & Containers */
+html.dark .bg-white:not([class*="dark:bg-"]) {
+    background-color: #0f172a !important; /* slate-900 */
+}
+
+html.dark .bg-white\/95:not([class*="dark:bg-"]),
+html.dark .bg-white\/90:not([class*="dark:bg-"]),
+html.dark .bg-white\/80:not([class*="dark:bg-"]),
+html.dark .bg-white\/75:not([class*="dark:bg-"]),
+html.dark .bg-white\/70:not([class*="dark:bg-"]) {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+html.dark .bg-gray-50:not([class*="dark:bg-"]),
+html.dark .bg-slate-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-gray-50/"]:not([class*="dark:bg-"]),
+html.dark [class*="bg-slate-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-gray-100:not([class*="dark:bg-"]),
+html.dark .bg-slate-100:not([class*="dark:bg-"]),
+html.dark [class*="bg-gray-100/"]:not([class*="dark:bg-"]) {
+    background-color: #1e293b !important; /* slate-800 */
+}
+
+/* 2. Structural Borders & Dividers */
+html.dark .border-gray-100:not([class*="dark:border-"]),
+html.dark .border-slate-100:not([class*="dark:border-"]),
+html.dark .border-teal-100:not([class*="dark:border-"]),
+html.dark .border-teal-100\/70:not([class*="dark:border-"]),
+html.dark .border-teal-100\/80:not([class*="dark:border-"]),
+html.dark .border-teal-200:not([class*="dark:border-"]),
+html.dark .border-teal-200\/80:not([class*="dark:border-"]),
+html.dark .border-gray-200:not([class*="dark:border-"]),
+html.dark .border-slate-200:not([class*="dark:border-"]),
+html.dark .border-gray-300:not([class*="dark:border-"]),
+html.dark .border-slate-300:not([class*="dark:border-"]),
+html.dark .border-gray-200\/80:not([class*="dark:border-"]),
+html.dark .border-slate-200\/80:not([class*="dark:border-"]) {
+    border-color: #334155 !important; /* slate-700 */
+}
+
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]):not([class*="dark:divide-"]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]):not([class*="dark:divide-"]),
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]):not([class*="dark:divide-"]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]):not([class*="dark:divide-"]) {
+    border-color: #334155 !important;
+}
+
+/* 3. Typography Contrast (Prevents Invisible / Black-on-Black Text) */
+html.dark .text-gray-950:not([class*="dark:text-"]),
+html.dark .text-slate-950:not([class*="dark:text-"]),
+html.dark .text-gray-900:not([class*="dark:text-"]),
+html.dark .text-slate-900:not([class*="dark:text-"]),
+html.dark .text-zinc-900:not([class*="dark:text-"]),
+html.dark .text-neutral-900:not([class*="dark:text-"]),
+html.dark .text-gray-800:not([class*="dark:text-"]),
+html.dark .text-slate-800:not([class*="dark:text-"]),
+html.dark .text-zinc-800:not([class*="dark:text-"]),
+html.dark .text-neutral-800:not([class*="dark:text-"]) {
+    color: #f8fafc !important; /* slate-50 - pure high contrast */
+}
+
+html.dark .text-gray-700:not([class*="dark:text-"]),
+html.dark .text-slate-700:not([class*="dark:text-"]),
+html.dark .text-zinc-700:not([class*="dark:text-"]),
+html.dark .text-neutral-700:not([class*="dark:text-"]) {
+    color: #cbd5e1 !important; /* slate-300 */
+}
+
+html.dark .text-gray-600:not([class*="dark:text-"]),
+html.dark .text-slate-600:not([class*="dark:text-"]),
+html.dark .text-zinc-600:not([class*="dark:text-"]),
+html.dark .text-neutral-600:not([class*="dark:text-"]) {
+    color: #94a3b8 !important; /* slate-400 */
+}
+
+html.dark .text-gray-500:not([class*="dark:text-"]),
+html.dark .text-slate-500:not([class*="dark:text-"]),
+html.dark .text-zinc-500:not([class*="dark:text-"]),
+html.dark .text-neutral-500:not([class*="dark:text-"]) {
+    color: #94a3b8 !important; /* slate-400 */
+}
+
+html.dark .text-gray-400:not([class*="dark:text-"]),
+html.dark .text-slate-400:not([class*="dark:text-"]) {
+    color: #64748b !important; /* slate-500 */
+}
+
+/* 4. Brand & Semantic Status Typography (Brightened for Dark Surfaces) */
+/* Teal (Brand Primary / Appointments / Invoices) */
+html.dark .text-teal-600:not([class*="dark:text-"]),
+html.dark .text-teal-700:not([class*="dark:text-"]),
+html.dark .text-teal-800:not([class*="dark:text-"]),
+html.dark .text-teal-900:not([class*="dark:text-"]),
+html.dark .text-teal-950:not([class*="dark:text-"]) {
+    color: #2dd4bf !important; /* teal-400 */
+}
+
+/* Emerald / Green (Completed / Paid / Confirmed / Success) */
+html.dark .text-emerald-600:not([class*="dark:text-"]),
+html.dark .text-emerald-700:not([class*="dark:text-"]),
+html.dark .text-emerald-800:not([class*="dark:text-"]),
+html.dark .text-emerald-900:not([class*="dark:text-"]),
+html.dark .text-emerald-950:not([class*="dark:text-"]),
+html.dark .text-green-600:not([class*="dark:text-"]),
+html.dark .text-green-700:not([class*="dark:text-"]),
+html.dark .text-green-800:not([class*="dark:text-"]) {
+    color: #34d399 !important; /* emerald-400 */
+}
+
+/* Amber / Yellow (Pending / Scheduled / Warning / Partial) */
+html.dark .text-amber-600:not([class*="dark:text-"]),
+html.dark .text-amber-700:not([class*="dark:text-"]),
+html.dark .text-amber-800:not([class*="dark:text-"]),
+html.dark .text-amber-900:not([class*="dark:text-"]),
+html.dark .text-amber-950:not([class*="dark:text-"]),
+html.dark .text-yellow-600:not([class*="dark:text-"]),
+html.dark .text-yellow-700:not([class*="dark:text-"]),
+html.dark .text-yellow-800:not([class*="dark:text-"]) {
+    color: #fbbf24 !important; /* amber-400 */
+}
+
+/* Rose / Red (Cancelled / Overdue / High Alert / Error / Danger) */
+html.dark .text-rose-600:not([class*="dark:text-"]),
+html.dark .text-rose-700:not([class*="dark:text-"]),
+html.dark .text-rose-800:not([class*="dark:text-"]),
+html.dark .text-rose-900:not([class*="dark:text-"]),
+html.dark .text-red-600:not([class*="dark:text-"]),
+html.dark .text-red-700:not([class*="dark:text-"]),
+html.dark .text-red-800:not([class*="dark:text-"]),
+html.dark .text-red-900:not([class*="dark:text-"]) {
+    color: #f87171 !important; /* red-400 */
+}
+
+/* Blue / Indigo (Dentist Role / Admin / In Progress / Info) */
+html.dark .text-blue-600:not([class*="dark:text-"]),
+html.dark .text-blue-700:not([class*="dark:text-"]),
+html.dark .text-blue-800:not([class*="dark:text-"]),
+html.dark .text-blue-900:not([class*="dark:text-"]),
+html.dark .text-indigo-600:not([class*="dark:text-"]),
+html.dark .text-indigo-700:not([class*="dark:text-"]),
+html.dark .text-indigo-800:not([class*="dark:text-"]),
+html.dark .text-indigo-900:not([class*="dark:text-"]) {
+    color: #60a5fa !important; /* blue-400 */
+}
+
+/* Purple / Violet (Specialists / Staff / Orthodontics) */
+html.dark .text-purple-600:not([class*="dark:text-"]),
+html.dark .text-purple-700:not([class*="dark:text-"]),
+html.dark .text-purple-800:not([class*="dark:text-"]),
+html.dark .text-purple-900:not([class*="dark:text-"]),
+html.dark .text-violet-600:not([class*="dark:text-"]),
+html.dark .text-violet-700:not([class*="dark:text-"]),
+html.dark .text-violet-800:not([class*="dark:text-"]) {
+    color: #c084fc !important; /* purple-400 */
+}
+
+/* Cyan (Cleanings / Hygiene / Bleaching) */
+html.dark .text-cyan-600:not([class*="dark:text-"]),
+html.dark .text-cyan-700:not([class*="dark:text-"]),
+html.dark .text-cyan-800:not([class*="dark:text-"]),
+html.dark .text-cyan-900:not([class*="dark:text-"]) {
+    color: #22d3ee !important; /* cyan-400 */
+}
+
+/* 5. Semantic Badges, Pills & Alert Containers */
+html.dark .bg-teal-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-teal-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-teal-100:not([class*="dark:bg-"]),
+html.dark [class*="bg-teal-100/"]:not([class*="dark:bg-"]) {
+    background-color: rgba(13, 148, 136, 0.22) !important;
+}
+html.dark .border-teal-50:not([class*="dark:border-"]),
+html.dark .border-teal-100:not([class*="dark:border-"]),
+html.dark .border-teal-200:not([class*="dark:border-"]) {
+    border-color: rgba(13, 148, 136, 0.45) !important;
+}
+
+html.dark .bg-emerald-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-emerald-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-emerald-100:not([class*="dark:bg-"]),
+html.dark [class*="bg-emerald-100/"]:not([class*="dark:bg-"]),
+html.dark .bg-green-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-green-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-green-100:not([class*="dark:bg-"]) {
+    background-color: rgba(16, 185, 129, 0.22) !important;
+}
+html.dark .border-emerald-100:not([class*="dark:border-"]),
+html.dark .border-emerald-200:not([class*="dark:border-"]),
+html.dark .border-emerald-300:not([class*="dark:border-"]),
+html.dark .border-green-100:not([class*="dark:border-"]),
+html.dark .border-green-200:not([class*="dark:border-"]) {
+    border-color: rgba(16, 185, 129, 0.45) !important;
+}
+
+html.dark .bg-amber-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-amber-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-amber-100:not([class*="dark:bg-"]),
+html.dark .bg-yellow-50:not([class*="dark:bg-"]),
+html.dark .bg-yellow-100:not([class*="dark:bg-"]) {
+    background-color: rgba(245, 158, 11, 0.22) !important;
+}
+html.dark .border-amber-100:not([class*="dark:border-"]),
+html.dark .border-amber-200:not([class*="dark:border-"]),
+html.dark .border-amber-300:not([class*="dark:border-"]) {
+    border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+html.dark .bg-rose-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-rose-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-rose-100:not([class*="dark:bg-"]),
+html.dark .bg-red-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-red-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-red-100:not([class*="dark:bg-"]) {
+    background-color: rgba(239, 68, 68, 0.22) !important;
+}
+html.dark .border-rose-100:not([class*="dark:border-"]),
+html.dark .border-rose-200:not([class*="dark:border-"]),
+html.dark .border-red-100:not([class*="dark:border-"]),
+html.dark .border-red-200:not([class*="dark:border-"]) {
+    border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+html.dark .bg-blue-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-blue-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-blue-100:not([class*="dark:bg-"]) {
+    background-color: rgba(59, 130, 246, 0.22) !important;
+}
+html.dark .border-blue-100:not([class*="dark:border-"]),
+html.dark .border-blue-200:not([class*="dark:border-"]) {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+html.dark .bg-indigo-50:not([class*="dark:bg-"]),
+html.dark .bg-indigo-100:not([class*="dark:bg-"]) {
+    background-color: rgba(99, 102, 241, 0.22) !important;
+}
+html.dark .border-indigo-100:not([class*="dark:border-"]),
+html.dark .border-indigo-200:not([class*="dark:border-"]) {
+    border-color: rgba(99, 102, 241, 0.45) !important;
+}
+
+html.dark .bg-purple-50:not([class*="dark:bg-"]),
+html.dark [class*="bg-purple-50/"]:not([class*="dark:bg-"]),
+html.dark .bg-purple-100:not([class*="dark:bg-"]),
+html.dark .bg-violet-50:not([class*="dark:bg-"]),
+html.dark .bg-violet-100:not([class*="dark:bg-"]) {
+    background-color: rgba(168, 85, 247, 0.22) !important;
+}
+html.dark .border-purple-100:not([class*="dark:border-"]),
+html.dark .border-purple-200:not([class*="dark:border-"]) {
+    border-color: rgba(168, 85, 247, 0.45) !important;
+}
+
+html.dark .bg-cyan-50:not([class*="dark:bg-"]),
+html.dark .bg-cyan-100:not([class*="dark:bg-"]) {
+    background-color: rgba(6, 182, 212, 0.22) !important;
+}
+html.dark .border-cyan-100:not([class*="dark:border-"]),
+html.dark .border-cyan-200:not([class*="dark:border-"]) {
+    border-color: rgba(6, 182, 212, 0.45) !important;
+}
+
+/* 6. Form Controls, Search Bars & Inputs */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="file"]),
+html.dark textarea,
+html.dark select {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark textarea:focus,
+html.dark select:focus {
+    background-color: #1e293b !important;
+    border-color: #14b8a6 !important;
+    --tw-ring-color: #14b8a6 !important;
+    color: #f8fafc !important;
+}
+
+/* Fix focus:bg-white turning inputs blinding white on typing */
+html.dark .focus\:bg-white:focus {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+    color: #64748b !important;
+}
+
+html.dark select option {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+/* 7. Tables, Headers & Rows */
+html.dark table {
+    border-color: #334155 !important;
+}
+
+html.dark table thead th {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+html.dark table tbody tr {
+    border-color: #1e293b !important;
+}
+
+html.dark table tbody tr:hover {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+html.dark table tbody td {
+    border-color: #334155 !important;
+}
+
+/* 8. Interactive & Hover States */
+html.dark .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-slate-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-gray-100:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-slate-100:hover:not([class*="dark:hover:bg-"]) {
+    background-color: #1e293b !important;
+}
+
+html.dark .hover\:bg-white:hover:not([class*="dark:hover:bg-"]) {
+    background-color: #0f172a !important;
+}
+
+html.dark .hover\:border-slate-300:hover,
+html.dark .hover\:border-gray-300:hover {
+    border-color: #475569 !important;
+}
+
+/* 9. Buttons & Tabs Inactive/Active States */
+html.dark .bg-gray-100.text-gray-600 {
+    background-color: #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+html.dark .bg-gray-100.text-gray-700 {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+}
+
+/* 10. Modals & Dialog Overlays */
+html.dark .shadow-2xs,
+html.dark .shadow-xs,
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl,
+html.dark .shadow-2xl {
+    --tw-shadow-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 11. Clinical Physical Print Overrides (Always crisp black-on-white on A4) */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm 15mm 15mm 15mm;
+    }
+
+    html.dark {
+        color-scheme: light !important;
+    }
+    html.dark body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    html.dark .bg-white {
+        background-color: #ffffff !important;
+    }
+    html.dark .text-gray-900,
+    html.dark .text-gray-800,
+    html.dark .text-gray-700,
+    html.dark .text-slate-900,
+    html.dark .text-slate-800,
+    html.dark .text-teal-700,
+    html.dark .text-teal-800,
+    html.dark .text-teal-900 {
+        color: #111827 !important;
+    }
+
+    /* Multi-page table repeating header & avoid row split */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto;
+    }
+
+    thead {
+        display: table-header-group !important;
+    }
+
+    tfoot {
+        display: table-footer-group !important;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .print-avoid-break {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}

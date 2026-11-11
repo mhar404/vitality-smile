@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title inertia>{{ config('app.name', 'Laravel') }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/brand/vitality-logo.png') }}?v={{ filemtime(public_path('images/brand/vitality-logo.png')) }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/brand/vitality-logo.png') }}?v={{ filemtime(public_path('images/brand/vitality-logo.png')) }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/brand/vitality-logo.png') }}">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+    <!-- Scripts -->
+    <script>
+        (function() {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    @routes
+    @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+    @inertiaHead
+</head>
+
+<body class="font-sans antialiased bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-150">
+    @inertia
+</body>
+
+</html>
