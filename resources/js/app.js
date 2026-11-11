@@ -4,7 +4,7 @@ import './bootstrap';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import { ZiggyVue } from 'ziggy-js';
 import { initTheme } from './Composables/useTheme';
 
 // Ensure theme is initialized and stays in sync on Inertia navigation
