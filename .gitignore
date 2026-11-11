@@ -15,6 +15,7 @@
 /node_modules
 # /public/build (included for shared hosting deployment without Node.js)
 /public/hot
+*.zip
 /public/storage
 /storage/*.key
 /storage/pail
