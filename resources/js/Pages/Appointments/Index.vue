@@ -400,12 +400,12 @@ const generateGoogleCalendarUrl = (appointment) => {
                                 </span>
                             </div>
                             <p class="text-xs text-amber-900 dark:text-amber-300 mt-1 leading-relaxed">
-                                Because you have documented medical conditions (<strong>{{ medicalClearance.conditions.join(', ') }}</strong>), clinic safety protocols require a signed <strong>Physician Medical Clearance</strong> before dental treatment can be performed. Please bring your clearance letter to your visit.
+                                Because you have documented medical conditions (<strong>{{ (medicalClearance.conditions || []).join(', ') }}</strong>), clinic safety protocols require a signed <strong>Physician Medical Clearance</strong> before dental treatment can be performed. Please bring your clearance letter to your visit.
                             </p>
                         </div>
                     </div>
                     <Link
-                        :href="route('medical-histories.my-history')"
+                        :href="route('medical-histories.my')"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shrink-0 shadow-xs"
                     >
                         <i class="pi pi-file text-xs"></i>

@@ -25,11 +25,21 @@ class AppointmentController extends Controller
     {
         $rules = ['required', 'date'];
         if ($checkFuture) {
-            $rules[] = 'after_or_equal:today';
+            $rules[] = function ($attribute, $value, $fail) {
+                try {
+                    $datePh = Carbon::parse($value, 'Asia/Manila')->toDateString();
+                    $nowPh = Carbon::now('Asia/Manila')->toDateString();
+                    if ($datePh < $nowPh) {
+                        $fail('Appointment date cannot be in the past.');
+                    }
+                } catch (\Exception $e) {
+                    $fail('Invalid appointment date format.');
+                }
+            };
         }
         $rules[] = function ($attribute, $value, $fail) {
             try {
-                $date = Carbon::parse($value);
+                $date = Carbon::parse($value, 'Asia/Manila');
                 if ($date->isWeekend()) {
                     $fail('Appointments are only available from Monday to Friday. The clinic is closed on weekends.');
                 }
@@ -186,6 +196,25 @@ class AppointmentController extends Controller
                 if ($mh->epilepsy) $conditions[] = 'Epilepsy';
                 if ($mh->is_pregnant) $conditions[] = 'Pregnancy';
                 if ($mh->has_allergies || !empty($mh->allergies)) $conditions[] = 'Drug Allergies';
+
+                if (empty($conditions)) {
+                    if (!empty($mh->other_conditions)) {
+                        if (is_array($mh->other_conditions)) {
+                            $conditions = array_merge($conditions, $mh->other_conditions);
+                        } else {
+                            $conditions[] = (string) $mh->other_conditions;
+                        }
+                    }
+                    if (!empty($mh->current_medications)) {
+                        $conditions[] = 'Medications: ' . $mh->current_medications;
+                    }
+                    if (!empty($mh->past_surgeries)) {
+                        $conditions[] = 'Past Surgeries: ' . $mh->past_surgeries;
+                    }
+                    if (empty($conditions)) {
+                        $conditions[] = 'Documented Health Conditions';
+                    }
+                }
 
                 $medicalClearance = [
                     'has_conditions' => true,
@@ -367,6 +396,25 @@ class AppointmentController extends Controller
                 if ($mh->is_pregnant) $conditions[] = 'Pregnancy';
                 if ($mh->has_allergies || !empty($mh->allergies)) $conditions[] = 'Drug Allergies';
 
+                if (empty($conditions)) {
+                    if (!empty($mh->other_conditions)) {
+                        if (is_array($mh->other_conditions)) {
+                            $conditions = array_merge($conditions, $mh->other_conditions);
+                        } else {
+                            $conditions[] = (string) $mh->other_conditions;
+                        }
+                    }
+                    if (!empty($mh->current_medications)) {
+                        $conditions[] = 'Medications: ' . $mh->current_medications;
+                    }
+                    if (!empty($mh->past_surgeries)) {
+                        $conditions[] = 'Past Surgeries: ' . $mh->past_surgeries;
+                    }
+                    if (empty($conditions)) {
+                        $conditions[] = 'Documented Health Conditions';
+                    }
+                }
+
                 $medicalClearance = [
                     'has_conditions' => true,
                     'clearance_presented' => (bool) $mh->medical_clearance_presented,
@@ -403,8 +451,9 @@ class AppointmentController extends Controller
             'exclude_id' => 'nullable|integer',
         ]);
 
-        $dateStr = Carbon::parse($request->date)->toDateString();
-        $date = Carbon::parse($dateStr);
+        $nowPh = Carbon::now('Asia/Manila');
+        $dateStr = Carbon::parse($request->date, 'Asia/Manila')->toDateString();
+        $date = Carbon::parse($dateStr, 'Asia/Manila');
         $isWeekend = $date->isWeekend();
 
         $durationMinutes = (int) ($request->duration_minutes ?: 60);
@@ -423,6 +472,8 @@ class AppointmentController extends Controller
                 'message' => 'The clinic is closed on weekends (Saturday & Sunday). Operating hours are Monday – Friday, 9:00 AM – 6:00 PM.',
                 'slots' => [],
                 'booked_intervals' => [],
+                'current_ph_date' => $nowPh->toDateString(),
+                'current_ph_time' => $nowPh->format('H:i'),
             ]);
         }
 
@@ -469,9 +520,11 @@ class AppointmentController extends Controller
             }
         }
 
-        // Clinic Operating Window: 09:00 to 18:00
-        $startOfDay = Carbon::parse($dateStr . ' 09:00:00');
-        $endOfDay = Carbon::parse($dateStr . ' 18:00:00');
+        // Clinic Operating Window: 09:00 to 18:00 (Asia/Manila)
+        $startOfDay = Carbon::parse($dateStr . ' 09:00:00', 'Asia/Manila');
+        $endOfDay = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Manila');
+        $isTodayPh = $date->isSameDay($nowPh);
+        $isPastDatePh = $dateStr < $nowPh->toDateString();
         $slotMinutes = 30;
 
         $slots = [];
@@ -482,14 +535,14 @@ class AppointmentController extends Controller
             $slotEndTime = $current->copy()->addMinutes($durationMinutes);
             $slotEndTimeStr = $slotEndTime->format('H:i');
 
-            // Check if slot is already in the past (for today or past dates)
+            // Check if slot is already in the past in Philippine Time (Asia/Manila)
             $isPast = false;
-            if ($date->isToday()) {
-                if ($current->lt(now())) {
+            if ($isPastDatePh) {
+                $isPast = true;
+            } elseif ($isTodayPh) {
+                if ($current->lte($nowPh)) {
                     $isPast = true;
                 }
-            } elseif ($date->isPast()) {
-                $isPast = true;
             }
 
             // Exceeds clinic operating closing time of 6:00 PM
@@ -535,6 +588,7 @@ class AppointmentController extends Controller
                 'end_label' => $slotEndTime->format('g:i A'),
                 'available' => $available,
                 'reason' => $reason,
+                'is_past' => $isPast,
                 'has_pending' => count($pendingOverlaps) > 0,
                 'pending_count' => count($pendingOverlaps),
                 'conflicting_confirmed' => $overlapsConfirmed ? $overlapsConfirmed['formatted'] : null,
@@ -546,6 +600,8 @@ class AppointmentController extends Controller
         return response()->json([
             'date' => $dateStr,
             'is_operating_day' => true,
+            'current_ph_date' => $nowPh->toDateString(),
+            'current_ph_time' => $nowPh->format('H:i'),
             'clinic_hours' => [
                 'start' => '09:00',
                 'end' => '18:00',
@@ -599,6 +655,27 @@ class AppointmentController extends Controller
             throw ValidationException::withMessages([
                 'appointment_time' => "The estimated duration of {$durationMinutes} minutes ends at " . Carbon::parse($endTime)->format('g:i A') . ", which exceeds clinic operating hours (closing at 6:00 PM). Please select an earlier start time."
             ]);
+        }
+
+        // For patient bookings: strictly prevent booking starting times that have already passed in Philippine Time (PST)
+        if (!$isClinicStaff) {
+            $nowPh = Carbon::now('Asia/Manila');
+            $targetDatePh = Carbon::parse($request->appointment_date, 'Asia/Manila')->toDateString();
+
+            if ($targetDatePh < $nowPh->toDateString()) {
+                throw ValidationException::withMessages([
+                    'appointment_date' => 'Appointment date cannot be in the past (Philippine Standard Time).',
+                ]);
+            }
+
+            if ($targetDatePh === $nowPh->toDateString()) {
+                $requestedDateTime = Carbon::parse($targetDatePh . ' ' . $startTime, 'Asia/Manila');
+                if ($requestedDateTime->lte($nowPh)) {
+                    throw ValidationException::withMessages([
+                        'appointment_time' => 'You cannot book an appointment with a starting time that has already passed in Philippine Time (PST).',
+                    ]);
+                }
+            }
         }
 
         $targetStatus = $isClinicStaff ? ($request->status ?? 'confirmed') : 'pending';

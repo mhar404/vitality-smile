@@ -32,9 +32,9 @@ class UserController extends Controller
         ],
         'dentist' => [
             'key' => 'dentist',
-            'name' => 'Attending Dentist',
+            'name' => 'Attending Dentist (Admin)',
             'badge' => 'bg-teal-100 text-teal-800 border-teal-200',
-            'description' => 'Clinical authority for dental diagnoses, patient charting, procedures, treatments, and medical histories.',
+            'description' => 'Clinical authority and administrative management for dental diagnoses, patient charting, procedures, treatments, and medical histories.',
             'permissions' => [
                 'View & manage scheduled appointments',
                 'Document & update clinical treatments',

@@ -162,7 +162,7 @@ class InvoiceController extends Controller
             'preselected_appointment' => $preselectedAppointment,
             'next_invoice_number' => $nextInvoiceNumber,
             'today' => now()->toDateString(),
-            'services' => Service::active()->ordered()->get(['id', 'name', 'title', 'base_price', 'price_display']),
+            'services' => Service::active()->ordered()->get(['id', 'name', 'title', 'base_price', 'max_price', 'price_display']),
         ]);
     }
 

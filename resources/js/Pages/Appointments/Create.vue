@@ -132,12 +132,95 @@ const availableServices = computed(() => {
 const CLINIC_START_TIME = "09:00";
 const CLINIC_END_TIME = "18:00";
 
+// Philippine Standard Time (PST / Asia/Manila / UTC+8) Helpers
+const getPhNow = () => {
+    try {
+        const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Manila",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23",
+        });
+        const parts = formatter.formatToParts(new Date());
+        const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+        return {
+            date: `${map.year}-${map.month}-${map.day}`,
+            time: `${map.hour}:${map.minute}`,
+        };
+    } catch {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const min = String(d.getMinutes()).padStart(2, "0");
+        return {
+            date: `${yyyy}-${mm}-${dd}`,
+            time: `${hh}:${min}`,
+        };
+    }
+};
+
 const todayString = computed(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+    return availabilityData.value?.current_ph_date || getPhNow().date;
+});
+
+// Dynamic minimum starting time for today
+const minAppointmentTime = computed(() => {
+    if (!props.isClinicStaff && form.appointment_date === todayString.value) {
+        const phNowTime = getPhNow().time;
+        return phNowTime > CLINIC_START_TIME ? phNowTime : CLINIC_START_TIME;
+    }
+    return CLINIC_START_TIME;
+});
+
+// Check if a starting time slot is in the past in Philippine Time
+const isSlotPassed = (slotOrTime) => {
+    if (!slotOrTime) return false;
+    const timeStr = typeof slotOrTime === "string" ? slotOrTime.slice(0, 5) : slotOrTime.time;
+    if (!timeStr) return false;
+
+    // Check if backend flagged it
+    if (typeof slotOrTime === "object") {
+        if (slotOrTime.is_past) return true;
+        if (slotOrTime.reason && slotOrTime.reason.toLowerCase().includes("passed")) return true;
+    }
+
+    if (!form.appointment_date) return false;
+    const phNow = getPhNow();
+    if (form.appointment_date < phNow.date) return true;
+    if (form.appointment_date === phNow.date) {
+        return timeStr <= phNow.time;
+    }
+    return false;
+};
+
+// Determine if slot can be selected by patient
+const isSlotSelectable = (slot) => {
+    if (!slot) return false;
+    if (!props.isClinicStaff && isSlotPassed(slot)) {
+        return false;
+    }
+    return !!slot.available;
+};
+
+const getSlotTitle = (slot) => {
+    if (!props.isClinicStaff && isSlotPassed(slot)) {
+        return "This starting time has already passed in Philippine Time (PST)";
+    }
+    return slot.reason || (slot.has_pending ? "Slot has pending requests" : "Available for booking");
+};
+
+// Check if all slots today have already passed
+const allSlotsPassedToday = computed(() => {
+    if (!form.appointment_date || props.isClinicStaff) return false;
+    const phNow = getPhNow();
+    if (form.appointment_date !== phNow.date) return false;
+    if (!availabilityData.value?.slots?.length) return false;
+    return availabilityData.value.slots.every((slot) => isSlotPassed(slot));
 });
 
 // Match selected service from detailed list
@@ -219,10 +302,14 @@ const validateDate = () => {
         }
 
         if (!props.isClinicStaff) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (selected < today) {
-                dateError.value = "Appointment date cannot be in the past.";
+            const phNow = getPhNow();
+            if (form.appointment_date < phNow.date) {
+                dateError.value = "Appointment date cannot be in the past (Philippine Standard Time).";
+                return false;
+            }
+            if (form.appointment_date === phNow.date && phNow.time >= CLINIC_END_TIME) {
+                dateError.value =
+                    "Clinic hours for today have already concluded (6:00 PM PST). Please select an upcoming weekday.";
                 return false;
             }
         }
@@ -238,6 +325,19 @@ const validateTime = () => {
     if (time < CLINIC_START_TIME || time > CLINIC_END_TIME) {
         timeError.value = "Appointment starting time must be between 9:00 AM and 6:00 PM.";
         return false;
+    }
+
+    // Patient cannot pick a starting time that has already passed in Philippine Time (PST)
+    if (!props.isClinicStaff && form.appointment_date) {
+        const phNow = getPhNow();
+        if (form.appointment_date < phNow.date) {
+            timeError.value = "Appointment date cannot be in the past.";
+            return false;
+        }
+        if (form.appointment_date === phNow.date && time <= phNow.time) {
+            timeError.value = `This starting time (${format12Hour(time)}) has already passed in Philippine Time (current PST is ${format12Hour(phNow.time)}). Please choose an upcoming time slot.`;
+            return false;
+        }
     }
 
     if (calculatedEndTime.value && calculatedEndTime.value > "18:00") {
@@ -329,7 +429,12 @@ watch(() => form.appointment_time, () => {
 
 // Slot Click Handler
 const selectSlot = (slot) => {
-    if (!slot.available) return;
+    if (!isSlotSelectable(slot)) {
+        if (!props.isClinicStaff && isSlotPassed(slot)) {
+            timeError.value = "This starting time has already passed in Philippine Time (PST). Please choose an upcoming time slot.";
+        }
+        return;
+    }
     form.appointment_time = slot.time;
     validateTime();
 };
@@ -362,8 +467,10 @@ const formattedSelectedDate = computed(() => {
 
 onMounted(() => {
     if (form.service && !form.appointment_date) {
-        // Pre-fill tomorrow if weekday or today
-        const nextDate = new Date();
+        // Pre-fill next operating weekday in Philippine Standard Time
+        const phDateStr = getPhNow().date;
+        const [y, m, d] = phDateStr.split("-").map(Number);
+        const nextDate = new Date(y, m - 1, d);
         if (nextDate.getDay() === 5) {
             // Friday -> next Monday
             nextDate.setDate(nextDate.getDate() + 3);
@@ -373,7 +480,10 @@ onMounted(() => {
         } else {
             nextDate.setDate(nextDate.getDate() + 1);
         }
-        form.appointment_date = nextDate.toISOString().slice(0, 10);
+        const yy = nextDate.getFullYear();
+        const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(nextDate.getDate()).padStart(2, "0");
+        form.appointment_date = `${yy}-${mm}-${dd}`;
         fetchAvailability();
     }
 });
@@ -594,7 +704,7 @@ onMounted(() => {
                                         id="appointment_time"
                                         v-model="form.appointment_time"
                                         type="time"
-                                        min="09:00"
+                                        :min="minAppointmentTime"
                                         max="18:00"
                                         step="900"
                                         required
@@ -604,7 +714,7 @@ onMounted(() => {
                                         ]"
                                     />
                                     <p class="text-[11px] text-gray-500 mt-1">
-                                        Between 9:00 AM and 6:00 PM (or pick slot below)
+                                        Between 9:00 AM and 6:00 PM (Philippine Time)
                                     </p>
                                     <p v-if="timeError" class="text-red-600 text-xs mt-1 font-medium flex items-center gap-1">
                                         <i class="pi pi-exclamation-circle text-xs"></i>
@@ -620,13 +730,19 @@ onMounted(() => {
                             <div class="rounded-2xl border border-gray-200 bg-gray-50/50 p-5 space-y-3">
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-gray-200 pb-3">
                                     <div>
-                                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
-                                            <span>Available Starting Time Slots</span>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800">
+                                                Available Starting Time Slots
+                                            </h3>
+                                            <span class="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-800 border border-teal-200/80">
+                                                <i class="pi pi-clock text-[9px]"></i>
+                                                Philippine Time (PST)
+                                            </span>
                                             <span v-if="isCheckingAvailability" class="text-teal-600 flex items-center gap-1 text-[11px] normal-case font-normal">
                                                 <i class="pi pi-spin pi-spinner text-xs"></i>
                                                 Checking dentist schedule...
                                             </span>
-                                        </h3>
+                                        </div>
                                         <p class="text-[11px] text-gray-500 mt-0.5">
                                             Slots automatically check Dr. Valdez's schedule and procedure duration ({{ selectedDurationMinutes }} mins).
                                         </p>
@@ -641,8 +757,20 @@ onMounted(() => {
                                             <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span> Pending Request
                                         </span>
                                         <span class="inline-flex items-center gap-1">
-                                            <span class="h-2.5 w-2.5 rounded-full bg-gray-300"></span> Booked / Closed
+                                            <span class="h-2.5 w-2.5 rounded-full bg-gray-300"></span> Booked / Passed
                                         </span>
+                                    </div>
+                                </div>
+
+                                <!-- All slots passed notice for today -->
+                                <div
+                                    v-if="allSlotsPassedToday"
+                                    class="rounded-xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs text-amber-900 flex items-start gap-2.5"
+                                >
+                                    <i class="pi pi-clock text-amber-600 text-sm mt-0.5"></i>
+                                    <div>
+                                        <strong class="font-bold block">All appointment slots for today have already passed.</strong>
+                                        <span>Operating hours are Monday – Friday, 9:00 AM – 6:00 PM (PST). Please select an upcoming weekday above to book your appointment.</span>
                                     </div>
                                 </div>
 
@@ -652,14 +780,14 @@ onMounted(() => {
                                         v-for="slot in availabilityData.slots"
                                         :key="slot.time"
                                         type="button"
-                                        :disabled="!slot.available"
+                                        :disabled="!isSlotSelectable(slot)"
                                         @click="selectSlot(slot)"
-                                        :title="slot.reason || (slot.has_pending ? 'Slot has pending requests' : 'Available for booking')"
+                                        :title="getSlotTitle(slot)"
                                         :class="[
                                             'relative rounded-xl p-2.5 text-left border transition text-xs flex flex-col justify-between min-h-[58px]',
                                             form.appointment_time && form.appointment_time.slice(0, 5) === slot.time
                                                 ? 'border-teal-700 bg-teal-700 text-white font-bold ring-2 ring-teal-400 shadow-sm'
-                                                : slot.available
+                                                : isSlotSelectable(slot)
                                                     ? 'border-gray-200 bg-white hover:border-teal-500 hover:bg-teal-50/50 text-gray-800'
                                                     : 'border-gray-200 bg-gray-100/80 text-gray-400 cursor-not-allowed opacity-60'
                                         ]"
@@ -667,14 +795,17 @@ onMounted(() => {
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-xs">{{ slot.label }}</span>
                                             <span
-                                                v-if="slot.has_pending && slot.available && form.appointment_time?.slice(0, 5) !== slot.time"
+                                                v-if="slot.has_pending && isSlotSelectable(slot) && form.appointment_time?.slice(0, 5) !== slot.time"
                                                 class="h-2 w-2 rounded-full bg-amber-500"
                                                 title="Slot has pending requests"
                                             ></span>
                                         </div>
 
                                         <div class="text-[10px] mt-1 truncate">
-                                            <span v-if="slot.available">
+                                            <span v-if="!isClinicStaff && isSlotPassed(slot)" class="text-gray-400 font-medium">
+                                                Time Passed (PH)
+                                            </span>
+                                            <span v-else-if="slot.available">
                                                 Ends: {{ slot.end_label }}
                                             </span>
                                             <span v-else class="text-red-500 font-medium">
@@ -797,7 +928,7 @@ onMounted(() => {
 
                                 <button
                                     type="submit"
-                                    :disabled="form.processing || !!dateError || !!timeError"
+                                    :disabled="form.processing || !!dateError || !!timeError || (!isClinicStaff && form.appointment_time && isSlotPassed(form.appointment_time))"
                                     class="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-6 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 transition"
                                 >
                                     <i v-if="form.processing" class="pi pi-spin pi-spinner text-xs"></i>

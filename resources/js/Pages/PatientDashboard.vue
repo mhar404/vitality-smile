@@ -345,7 +345,7 @@ const markNotificationRead = (id) => {
                         </div>
 
                         <Link
-                            :href="route('medical-histories.my-history')"
+                            :href="route('medical-histories.my')"
                             class="inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition shrink-0 self-start sm:self-auto"
                         >
                             <i class="pi pi-file text-xs"></i>
@@ -364,7 +364,7 @@ const markNotificationRead = (id) => {
                             </div>
                             <div class="flex flex-wrap gap-1.5 pt-1">
                                 <span
-                                    v-for="(condition, idx) in medicalClearance.conditions"
+                                    v-for="(condition, idx) in (medicalClearance.conditions || [])"
                                     :key="idx"
                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800"
                                 >
@@ -425,7 +425,7 @@ const markNotificationRead = (id) => {
                         </div>
                     </div>
                     <Link
-                        :href="route('medical-histories.my-history')"
+                        :href="route('medical-histories.my')"
                         class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:underline flex items-center gap-1 shrink-0"
                     >
                         <span>View Health Record</span>

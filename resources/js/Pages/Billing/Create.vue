@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 
 const props = defineProps({
     patients: {
@@ -25,19 +25,212 @@ const quickServices = computed(() => {
         return props.services.map((s) => ({
             name: s.title || s.name,
             price: parseFloat(s.base_price) || 0,
+            base_price: parseFloat(s.base_price) || 0,
+            max_price: s.max_price ? parseFloat(s.max_price) : parseFloat(s.base_price) || 0,
         }));
     }
     return [
-        { name: "Oral Prophylaxis (Cleaning)", price: 800 },
-        { name: "Composite Dental Filling (Per Tooth)", price: 800 },
-        { name: "Simple Tooth Extraction", price: 800 },
-        { name: "Surgical Wisdom Tooth Extraction", price: 8000 },
-        { name: "Root Canal Therapy (Per Canal)", price: 8000 },
-        { name: "Porcelain / Zirconia Dental Crown", price: 7000 },
-        { name: "In-Office Teeth Whitening Session", price: 8000 },
-        { name: "Orthodontic Monthly Adjustment", price: 1500 },
+        { name: "Oral Prophylaxis (Cleaning)", price: 800, base_price: 800, max_price: 1000 },
+        { name: "Composite Dental Filling (Per Tooth)", price: 800, base_price: 800, max_price: 1000 },
+        { name: "Simple Tooth Extraction", price: 800, base_price: 800, max_price: 1000 },
+        { name: "Surgical Wisdom Tooth Extraction", price: 8000, base_price: 8000, max_price: 20000 },
+        { name: "Root Canal Therapy (Per Canal)", price: 8000, base_price: 8000, max_price: 8000 },
+        { name: "Porcelain / Zirconia Dental Crown", price: 7000, base_price: 7000, max_price: 8000 },
+        { name: "In-Office Teeth Whitening Session", price: 8000, base_price: 8000, max_price: 10000 },
+        { name: "Orthodontic Monthly Adjustment", price: 1500, base_price: 1500, max_price: 1500 },
     ];
 });
+
+// Comprehensive catalog price matcher ensuring procedure fee strictly aligns with procedure catalog
+const lookupItemFee = (description) => {
+    if (!description || !description.trim()) {
+        return {
+            min: 0,
+            max: null,
+            isFixed: false,
+            defaultFee: 0,
+        };
+    }
+
+    const clean = description.trim();
+
+    // 1. Check in props.services if available
+    const catalog = props.services || [];
+    let matched = catalog.find(
+        (s) =>
+            (s.name && s.name.toLowerCase() === clean.toLowerCase()) ||
+            (s.title && s.title.toLowerCase() === clean.toLowerCase())
+    );
+
+    if (!matched) {
+        const lower = clean.toLowerCase();
+        matched = catalog.find(
+            (s) =>
+                (s.name && s.name.toLowerCase() === lower) ||
+                (s.title && s.title.toLowerCase() === lower) ||
+                (s.name && lower.includes(s.name.toLowerCase())) ||
+                (s.title && lower.includes(s.title.toLowerCase())) ||
+                (s.name && s.name.toLowerCase().includes(lower)) ||
+                (s.title && s.title.toLowerCase().includes(lower))
+        );
+    }
+
+    if (matched) {
+        const min = parseFloat(matched.base_price) || 0;
+        const max = matched.max_price ? parseFloat(matched.max_price) : min;
+        return {
+            min,
+            max,
+            isFixed: min === max,
+            defaultFee: min,
+        };
+    }
+
+    // 2. Parse from description string if contains price range or single price like ₱800-₱1,000 or ₱1,500
+    const rangeMatch = clean.match(
+        /₱\s*([0-9,]+)\s*[-–]\s*₱?\s*([0-9,]+)/
+    );
+    if (rangeMatch) {
+        const min = parseFloat(rangeMatch[1].replace(/,/g, ""));
+        const max = parseFloat(rangeMatch[2].replace(/,/g, ""));
+        return {
+            min,
+            max,
+            isFixed: min === max,
+            defaultFee: min,
+        };
+    }
+
+    const singleMatch = clean.match(/₱\s*([0-9,]+)/);
+    if (singleMatch) {
+        const price = parseFloat(singleMatch[1].replace(/,/g, ""));
+        return {
+            min: price,
+            max: price,
+            isFixed: true,
+            defaultFee: price,
+        };
+    }
+
+    // 3. Fallback keywords based on standard Vitality Smile clinic catalog
+    const proc = clean.toLowerCase();
+    if (proc.includes("prophylaxis") || proc.includes("cleaning")) {
+        return { min: 800, max: 1000, isFixed: false, defaultFee: 800 };
+    } else if (proc.includes("restoration") || proc.includes("filling")) {
+        return { min: 800, max: 1000, isFixed: false, defaultFee: 800 };
+    } else if (
+        proc.includes("extraction") &&
+        !proc.includes("wisdom") &&
+        !proc.includes("odontectomy")
+    ) {
+        return { min: 800, max: 1000, isFixed: false, defaultFee: 800 };
+    } else if (proc.includes("wisdom tooth") || proc.includes("erupted")) {
+        return { min: 5000, max: 8000, isFixed: false, defaultFee: 5000 };
+    } else if (
+        proc.includes("odontectomy") ||
+        proc.includes("surgery") ||
+        proc.includes("impacted")
+    ) {
+        return { min: 8000, max: 20000, isFixed: false, defaultFee: 8000 };
+    } else if (proc.includes("root canal")) {
+        return { min: 8000, max: 8000, isFixed: true, defaultFee: 8000 };
+    } else if (proc.includes("whitening")) {
+        return { min: 8000, max: 10000, isFixed: false, defaultFee: 8000 };
+    } else if (proc.includes("plastic jacket")) {
+        return { min: 5000, max: 6000, isFixed: false, defaultFee: 5000 };
+    } else if (
+        proc.includes("porcelain") ||
+        proc.includes("metal jacket") ||
+        proc.includes("pfm")
+    ) {
+        return { min: 7000, max: 8000, isFixed: false, defaultFee: 7000 };
+    } else if (proc.includes("bridge")) {
+        return { min: 7000, max: 8000, isFixed: false, defaultFee: 7000 };
+    } else if (proc.includes("denture")) {
+        return { min: 10000, max: 15000, isFixed: false, defaultFee: 10000 };
+    } else if (
+        proc.includes("orthodontic") ||
+        proc.includes("adjustment") ||
+        proc.includes("braces")
+    ) {
+        return { min: 1500, max: 1500, isFixed: true, defaultFee: 1500 };
+    } else if (proc.includes("fluoride")) {
+        return { min: 800, max: 800, isFixed: true, defaultFee: 800 };
+    } else if (proc.includes("check-up") || proc.includes("consultation")) {
+        return { min: 500, max: 500, isFixed: true, defaultFee: 500 };
+    }
+
+    return {
+        min: 0,
+        max: null,
+        isFixed: false,
+        defaultFee: 0,
+    };
+};
+
+const onFeeKeydown = (e) => {
+    // Prevent typing negative numbers, plus signs, and scientific notation
+    if (["-", "+", "e", "E"].includes(e.key)) {
+        e.preventDefault();
+    }
+};
+
+const validateAndClampItemPrice = (index, isBlur = false, event = null) => {
+    const item = form.items[index];
+    if (!item) return;
+
+    const config = lookupItemFee(item.description);
+    if (config.isFixed) {
+        item.unit_price = config.min;
+        if (event?.target) event.target.value = config.min;
+        return;
+    }
+
+    const val = parseFloat(item.unit_price);
+    if (isNaN(val)) {
+        if (isBlur) {
+            item.unit_price = config.min;
+            if (event?.target) event.target.value = config.min;
+        }
+        return;
+    }
+
+    // Input cannot be higher than maximum
+    if (config.max !== null && config.max !== undefined && val > config.max) {
+        item.unit_price = config.max;
+        if (event?.target) event.target.value = config.max;
+        return;
+    }
+
+    // Input cannot be lower than zero
+    if (val < 0) {
+        item.unit_price = config.min;
+        if (event?.target) event.target.value = config.min;
+        return;
+    }
+
+    // On blur or change, input cannot be lower than minimum
+    if (isBlur && val < config.min) {
+        item.unit_price = config.min;
+        if (event?.target) event.target.value = config.min;
+    }
+};
+
+const onDescriptionChange = (index) => {
+    const item = form.items[index];
+    if (!item) return;
+    const config = lookupItemFee(item.description);
+    if (config.isFixed) {
+        item.unit_price = config.min;
+    } else {
+        const val = parseFloat(item.unit_price);
+        if (isNaN(val) || val === 0 || val < config.min) {
+            item.unit_price = config.defaultFee || config.min;
+        } else if (config.max !== null && val > config.max) {
+            item.unit_price = config.max;
+        }
+    }
+};
 
 // Initialize initial line item
 const initialItems = [];
@@ -46,24 +239,26 @@ if (props.preselected_treatment) {
     if (props.preselected_treatment.tooth_number) {
         desc += ` (Tooth #${props.preselected_treatment.tooth_number})`;
     }
+    const config = lookupItemFee(desc);
+    let cost = parseFloat(props.preselected_treatment.cost);
+    if (isNaN(cost)) {
+        cost = config.defaultFee;
+    } else if (config.isFixed) {
+        cost = config.min;
+    } else {
+        if (config.min !== null && cost < config.min) cost = config.min;
+        if (config.max !== null && cost > config.max) cost = config.max;
+    }
     initialItems.push({
         description: desc,
         quantity: 1,
-        unit_price: parseFloat(props.preselected_treatment.cost) || 0,
+        unit_price: cost,
         treatment_id: props.preselected_treatment.id,
     });
 } else if (props.preselected_appointment) {
     const aptService = props.preselected_appointment.service || "Dental Consultation";
-    let estCost = 800;
-    if (props.services && props.services.length > 0) {
-        const found = props.services.find((s) =>
-            (s.title && aptService.toLowerCase().includes(s.title.toLowerCase())) ||
-            (s.name && aptService.toLowerCase().includes(s.name.toLowerCase()))
-        );
-        if (found && found.base_price) {
-            estCost = parseFloat(found.base_price);
-        }
-    }
+    const config = lookupItemFee(aptService);
+    let estCost = config.defaultFee || 800;
     initialItems.push({
         description: aptService,
         quantity: 1,
@@ -125,14 +320,17 @@ const removeItem = (index) => {
 
 const applyTemplate = (svc, index) => {
     form.items[index].description = svc.name;
-    form.items[index].unit_price = svc.price;
+    const config = lookupItemFee(svc.name);
+    form.items[index].unit_price = config.defaultFee || svc.price;
+    validateAndClampItemPrice(index, true);
 };
 
 // Computations
 const subtotal = computed(() => {
     return form.items.reduce((sum, item) => {
         const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.unit_price) || 0;
+        const config = lookupItemFee(item.description);
+        const price = config.isFixed ? config.min : (parseFloat(item.unit_price) || 0);
         return sum + qty * price;
     }, 0);
 });
@@ -149,6 +347,15 @@ const formatCurrency = (val) => {
     return "₱" + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+onMounted(() => {
+    form.items.forEach((item, idx) => {
+        if (item.description) {
+            onDescriptionChange(idx);
+            validateAndClampItemPrice(idx, true);
+        }
+    });
+});
+
 const submit = () => {
     form.transform((data) => ({
         ...data,
@@ -157,12 +364,29 @@ const submit = () => {
         treatment_id: data.treatment_id ? Number(data.treatment_id) : null,
         discount: data.discount !== "" && data.discount !== null ? Math.max(0, parseFloat(data.discount) || 0) : 0,
         tax: data.tax !== "" && data.tax !== null ? Math.max(0, parseFloat(data.tax) || 0) : 0,
-        items: data.items.map((item) => ({
-            description: (item.description || "").trim(),
-            quantity: Math.max(1, parseInt(item.quantity) || 1),
-            unit_price: Math.max(0, parseFloat(item.unit_price) || 0),
-            treatment_id: item.treatment_id ? Number(item.treatment_id) : null,
-        })),
+        items: data.items.map((item) => {
+            const config = lookupItemFee(item.description);
+            let price = parseFloat(item.unit_price);
+            if (isNaN(price)) {
+                price = config.defaultFee || config.min;
+            } else {
+                if (config.isFixed) {
+                    price = config.min;
+                } else {
+                    if (config.min !== null && price < config.min) {
+                        price = config.min;
+                    } else if (config.max !== null && price > config.max) {
+                        price = config.max;
+                    }
+                }
+            }
+            return {
+                description: (item.description || "").trim(),
+                quantity: Math.max(1, parseInt(item.quantity) || 1),
+                unit_price: Math.max(0, price),
+                treatment_id: item.treatment_id ? Number(item.treatment_id) : null,
+            };
+        }),
     })).post(route("billing.store"), {
         preserveScroll: true,
     });
@@ -357,6 +581,8 @@ const submit = () => {
                                             type="text"
                                             placeholder="e.g. Oral Prophylaxis, Light-cure Composite Filling..."
                                             required
+                                            @input="onDescriptionChange(idx)"
+                                            @change="onDescriptionChange(idx)"
                                             class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm"
                                         />
                                         <p v-if="form.errors[`items.${idx}.description`]" class="text-xs text-red-600 mt-1">
@@ -399,12 +625,29 @@ const submit = () => {
                                         <label class="block text-xs font-semibold text-gray-700 mb-1">
                                             Unit Price (₱) <span class="text-red-500">*</span>
                                         </label>
+                                        <!-- Fixed price: Readonly locked input -->
                                         <input
+                                            v-if="lookupItemFee(item.description).isFixed"
+                                            :value="lookupItemFee(item.description).min"
+                                            type="number"
+                                            readonly
+                                            tabindex="-1"
+                                            class="w-full rounded-lg border-gray-300 bg-gray-100 text-gray-700 text-sm font-bold shadow-sm cursor-not-allowed select-none"
+                                            title="Fixed procedure fee aligned with clinic procedure catalog. Cannot be edited."
+                                        />
+                                        <!-- Variable price: Strictly bounded between min and max -->
+                                        <input
+                                            v-else
                                             v-model.number="item.unit_price"
                                             type="number"
-                                            step="0.01"
-                                            min="0"
+                                            step="50"
+                                            :min="lookupItemFee(item.description).min"
+                                            :max="lookupItemFee(item.description).max || undefined"
                                             required
+                                            @keydown="onFeeKeydown"
+                                            @input="validateAndClampItemPrice(idx, false, $event)"
+                                            @blur="validateAndClampItemPrice(idx, true, $event)"
+                                            @change="validateAndClampItemPrice(idx, true, $event)"
                                             class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm font-semibold"
                                         />
                                         <p v-if="form.errors[`items.${idx}.unit_price`]" class="text-xs text-red-600 mt-1">
@@ -418,7 +661,7 @@ const submit = () => {
                                             Total
                                         </label>
                                         <div class="h-[38px] flex items-center px-3 rounded-lg bg-gray-100 border border-gray-200 text-sm font-bold text-gray-900">
-                                            {{ formatCurrency((item.quantity || 0) * (item.unit_price || 0)) }}
+                                            {{ formatCurrency((item.quantity || 0) * (lookupItemFee(item.description).isFixed ? lookupItemFee(item.description).min : (item.unit_price || 0))) }}
                                         </div>
                                     </div>
                                 </div>

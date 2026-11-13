@@ -92,7 +92,7 @@ const createForm = useForm({
     name: "",
     email: "",
     phone_number: "",
-    role: "staff",
+    role: "dentist",
     password: "",
     email_verified: true,
 });
@@ -100,7 +100,7 @@ const createForm = useForm({
 const openCreateModal = () => {
     createForm.reset();
     createForm.clearErrors();
-    createForm.role = "staff";
+    createForm.role = "dentist";
     createForm.email_verified = true;
     showCreateModal.value = true;
 };
@@ -239,7 +239,7 @@ const getRoleBadge = (role) => {
             };
         case "dentist":
             return {
-                label: "Dentist",
+                label: "Dentist (Admin)",
                 class: "bg-teal-100 text-teal-800 border-teal-200",
                 icon: "pi pi-heart",
             };
@@ -477,7 +477,7 @@ const getRoleBadge = (role) => {
                             >
                                 <option value="">All Roles</option>
                                 <option value="admin">Administrator</option>
-                                <option value="dentist">Dentist</option>
+                                <option value="dentist">Dentist (Admin)</option>
                                 <option value="staff">Clinic Staff</option>
                                 <option value="secretary">Secretary</option>
                                 <option value="patient">Patient Portal</option>
@@ -842,11 +842,9 @@ const getRoleBadge = (role) => {
                             required
                             class="w-full rounded-xl border-gray-300 text-xs py-2.5 focus:border-teal-500 focus:ring-teal-500"
                         >
+                            <option value="dentist">Dentist (Admin - Clinical Charting, Treatments, Billing, Payments)</option>
                             <option value="staff">Clinic Staff (Patients; View-Only: Appointments, Treatments, Services, Billing, Payments)</option>
-                            <option value="dentist">Dentist (Clinical Charting, Treatments, Billing, Payments)</option>
                             <option value="secretary">Clinic Secretary (Appointment Scheduling & Invoicing)</option>
-                            <option value="admin">Clinic Administrator (Full Super Admin Privileges)</option>
-                            <option value="patient">Patient Portal User</option>
                         </select>
                         <p v-if="createForm.errors.role" class="mt-1 text-xs text-rose-600">
                             {{ createForm.errors.role }}
@@ -997,11 +995,11 @@ const getRoleBadge = (role) => {
                             required
                             class="w-full rounded-xl border-gray-300 text-xs py-2.5 focus:border-teal-500 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
-                            <option value="admin">Administrator (Super Admin)</option>
-                            <option value="dentist">Dentist (Clinical Authority, Billing & Payments)</option>
+                            <option v-if="editForm.role === 'admin'" value="admin">Administrator</option>
+                            <option value="dentist">Dentist (Admin - Clinical Authority, Billing & Payments)</option>
                             <option value="staff">Clinic Staff (Patients; View-Only: Appointments, Treatments, Services, Billing, Payments)</option>
                             <option value="secretary">Secretary (Appointment Scheduling & Invoicing)</option>
-                            <option value="patient">Patient Portal User</option>
+                            <option v-if="editForm.role === 'patient'" value="patient">Patient Portal User</option>
                         </select>
                         <p v-if="activeUser.id === authUser.id" class="mt-1 text-[11px] text-gray-500">
                             You cannot change your own administrator role to prevent accidental lockout.

@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const props = defineProps({
     treatment: Object,
@@ -444,40 +444,59 @@ const onProcedureChange = () => {
     feeError.value = "";
 };
 
-const validateAndClampFee = (isBlur = false) => {
+const onFeeKeydown = (e) => {
+    // Prevent typing negative numbers, plus signs, and scientific notation
+    if (["-", "+", "e", "E"].includes(e.key)) {
+        e.preventDefault();
+    }
+};
+
+const validateAndClampFee = (isBlur = false, event = null) => {
     const config = currentFeeConfig.value;
     if (config.isFixed) {
         form.cost = config.min;
+        if (event?.target) event.target.value = config.min;
         feeError.value = "";
         return;
     }
 
     const val = parseFloat(form.cost);
     if (isNaN(val)) {
-        if (isBlur) form.cost = config.min;
-        feeError.value = `Procedure fee cannot be empty. Must align with ₱${config.min.toLocaleString()} – ₱${config.max.toLocaleString()}.`;
+        if (isBlur) {
+            form.cost = config.min;
+            if (event?.target) event.target.value = config.min;
+        }
+        feeError.value = "";
         return;
     }
 
-    if (val < config.min) {
-        feeError.value = `Procedure fee cannot be less than ₱${config.min.toLocaleString()} for this procedure.`;
-        if (isBlur) {
-            form.cost = config.min;
-        }
-    } else if (val > config.max) {
-        feeError.value = `Procedure fee cannot exceed ₱${config.max.toLocaleString()} for this procedure.`;
-        if (isBlur) {
-            form.cost = config.max;
-        }
-    } else {
+    // Input cannot be higher than maximum
+    if (val > config.max) {
+        form.cost = config.max;
+        if (event?.target) event.target.value = config.max;
         feeError.value = "";
+        return;
     }
+
+    // Input cannot be lower than zero
+    if (val < 0) {
+        form.cost = config.min;
+        if (event?.target) event.target.value = config.min;
+        feeError.value = "";
+        return;
+    }
+
+    // On blur or change, input cannot be lower than minimum
+    if (isBlur && val < config.min) {
+        form.cost = config.min;
+        if (event?.target) event.target.value = config.min;
+    }
+    feeError.value = "";
 };
 
-const setFeePreset = (amt) => {
-    form.cost = amt;
+onMounted(() => {
     validateAndClampFee(true);
-};
+});
 
 const commonToothSelections = [
     "General / Mouth",
@@ -514,22 +533,19 @@ const submit = () => {
         return;
     }
 
-    // 2. Enforce procedure fee alignment
+    // 2. Enforce procedure fee bounds: strictly cannot be higher than max, cannot be lower than min
     const config = currentFeeConfig.value;
     if (config.isFixed) {
         form.cost = config.min;
     } else {
-        if (form.cost < config.min) {
+        const val = parseFloat(form.cost);
+        if (isNaN(val) || val < config.min) {
             form.cost = config.min;
-            feeError.value = `Procedure fee cannot be less than ₱${config.min.toLocaleString()}.`;
-            return;
-        }
-        if (form.cost > config.max) {
+        } else if (val > config.max) {
             form.cost = config.max;
-            feeError.value = `Procedure fee cannot exceed ₱${config.max.toLocaleString()}.`;
-            return;
         }
     }
+    feeError.value = "";
 
     form.put(route("treatments.update", props.treatment.id), {
         preserveScroll: true,
@@ -984,7 +1000,7 @@ const submit = () => {
                                             class="w-full pl-8 rounded-lg border-gray-300 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 text-sm font-bold shadow-xs cursor-not-allowed select-none"
                                             title="Fixed procedure fee aligned with clinic procedure catalog. Cannot be edited."
                                         />
-                                        <!-- Variable price range: Strict bounded input -->
+                                        <!-- Variable price: Strictly bounded between min and max -->
                                         <input
                                             v-else
                                             v-model.number="form.cost"
@@ -993,9 +1009,10 @@ const submit = () => {
                                             :max="currentFeeConfig.max"
                                             step="50"
                                             required
-                                            @input="validateAndClampFee(false)"
-                                            @blur="validateAndClampFee(true)"
-                                            @change="validateAndClampFee(true)"
+                                            @keydown="onFeeKeydown"
+                                            @input="validateAndClampFee(false, $event)"
+                                            @blur="validateAndClampFee(true, $event)"
+                                            @change="validateAndClampFee(true, $event)"
                                             :class="[
                                                 'w-full pl-8 rounded-lg border shadow-xs text-sm font-semibold text-gray-900 dark:text-white dark:bg-slate-900 transition-colors',
                                                 feeError
@@ -1011,24 +1028,14 @@ const submit = () => {
                                         class="text-xs text-teal-700 dark:text-teal-400 mt-1.5 flex items-center gap-1 font-medium"
                                     >
                                         <i class="pi pi-lock text-[11px]"></i>
-                                        Procedure fee is locked to the official
-                                        dental procedure catalog price (₱{{
-                                            currentFeeConfig.min.toLocaleString()
-                                        }}). It cannot be edited to excess or
-                                        less.
+                                        Procedure fee is locked to the official dental procedure catalog price.
                                     </p>
                                     <p
                                         v-else-if="!feeError"
                                         class="text-xs text-teal-700 dark:text-teal-400 mt-1.5 flex items-center gap-1 font-medium"
                                     >
                                         <i class="pi pi-shield text-[11px]"></i>
-                                        Fee must align with the dental procedure
-                                        price (₱{{
-                                            currentFeeConfig.min.toLocaleString()
-                                        }}
-                                        – ₱{{
-                                            currentFeeConfig.max.toLocaleString()
-                                        }}). Cannot be edited to excess or less.
+                                        Fee must align with the dental procedure catalog price.
                                     </p>
 
                                     <!-- Validation Error Warnings -->

@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/patients/{patient}/medical-history/edit', [App\Http\Controllers\MedicalHistoryController::class, 'edit'])->name('medical-histories.edit');
     Route::post('/patients/{patient}/medical-history', [App\Http\Controllers\MedicalHistoryController::class, 'storeOrUpdate'])->name('medical-histories.store');
     Route::get('/my-medical-history', [App\Http\Controllers\MedicalHistoryController::class, 'myHistory'])->name('medical-histories.my');
+    Route::get('/my-medical-history/view', [App\Http\Controllers\MedicalHistoryController::class, 'myHistory'])->name('medical-histories.my-history');
 
     // Notification Routes
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');

@@ -28,13 +28,13 @@ class AppointmentBookingModuleTest extends TestCase
         $this->dentist = User::factory()->create([
             'name' => 'Dr. Valdez',
             'role' => 'dentist',
-            'email' => 'admin@example.com',
+            'email' => 'vitalityadmin01@gmail.com',
         ]);
 
         $this->secretary = User::factory()->create([
             'name' => 'Secretary Anna',
             'role' => 'secretary',
-            'email' => 'secretary@example.com',
+            'email' => 'vitalitysecretary01@gmail.com',
         ]);
 
         $this->patientUser = User::factory()->create([

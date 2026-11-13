@@ -90,6 +90,25 @@ class DashboardController extends Controller
                     if ($mh->is_pregnant) $conditions[] = 'Pregnancy';
                     if ($mh->has_allergies || !empty($mh->allergies)) $conditions[] = 'Drug Allergies';
 
+                    if (empty($conditions)) {
+                        if (!empty($mh->other_conditions)) {
+                            if (is_array($mh->other_conditions)) {
+                                $conditions = array_merge($conditions, $mh->other_conditions);
+                            } else {
+                                $conditions[] = (string) $mh->other_conditions;
+                            }
+                        }
+                        if (!empty($mh->current_medications)) {
+                            $conditions[] = 'Medications: ' . $mh->current_medications;
+                        }
+                        if (!empty($mh->past_surgeries)) {
+                            $conditions[] = 'Past Surgeries: ' . $mh->past_surgeries;
+                        }
+                        if (empty($conditions)) {
+                            $conditions[] = 'Documented Health Conditions';
+                        }
+                    }
+
                     $medicalClearance = [
                         'has_conditions' => true,
                         'clearance_presented' => (bool) $mh->medical_clearance_presented,
